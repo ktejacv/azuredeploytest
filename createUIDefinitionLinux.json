@@ -144,7 +144,7 @@
                         "name": "DiskType",
                         "type": "Microsoft.Common.DropDown",
                         "label": "Disk Type",
-                        "defaultValue": "[if(greater(length(split(basics('region').zones, ',')),1)), 'Premium SSD', 'Premium SSD V2')]",
+                        "defaultValue": "[if(greater(length(split(basics('region').zones, ',')), 1), 'Premium SSD V2', 'Premium SSD')]",
                         "constraints": {
                             "allowedValues": [
                                 {
