@@ -1,0 +1,366 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "basics": {
+                "description": "Commvault Cloud backup gateway wizard",
+                "subscription": {},
+                "resourceGroup": {},
+                "location": {
+                    "label": "Resource group region",
+                    "toolTip": "This field will be auto-populated if existing resource group is selected.",
+                    "visible": true
+                }
+            }
+        },
+        "basics": [
+            {
+                "name": "vmName",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Virtual Machine name",
+                "toolTip": "The name of the Virtual Machine.",
+                "constraints": {
+                    "required": true,
+                    "regex": "^[a-z0-9A-Z-]{3,15}$",
+                    "validationMessage": "The VM Name must be between 3 and 15 characters long and contain letters, numbers and hyphens only."
+                }
+            },
+            {
+                "name": "armApiControl",
+                "type": "Microsoft.Solutions.ArmApiControl",
+                "request": {
+                    "method": "GET",
+                    "path": "[concat(subscription().id, '/locations?api-version=2022-12-01')]"
+                }
+            },
+            {
+                "name": "region",
+                "type": "Microsoft.Common.DropDown",
+                "label": "VM Region",
+                "filter": true,
+                "toolTip": "Choose the region same as target workloads region.",
+                "constraints": {
+                    "allowedValues": "[map(basics('armApiControl').value, (item) => parse(concat('{\"label\":\"', item.regionalDisplayName, '\",\"value\":{\"region\":\"',item.name,'\",\"zones\":\"', item.availabilityZoneMappings, '\"}}')))]",
+                    "required": true
+                },
+                "visible": true
+            },
+            {
+                "name": "availabilityZone",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Availability Zone",
+                "defaultValue": "",
+                "toolTip": "Select an availability zone",
+                "constraints": {
+                    "allowedValues": [
+                        {
+                            "label": "Zone 1",
+                            "value": "1"
+                        },
+                        {
+                            "label": "Zone 2",
+                            "value": "2"
+                        },
+                        {
+                            "label": "Zone 3",
+                            "value": "3"
+                        }
+                    ]
+                },
+                "visible": "[greater(length(split(basics('region').zones, ',')),1)]"
+            },
+            {
+                "name": "adminUsername",
+                "type": "Microsoft.Compute.UserNameTextBox",
+                "label": "Username",
+                "toolTip": "Admin username for the machine",
+                "osPlatform": "Linux",
+                "constraints": {
+                    "required": true
+                }
+            },
+            {
+                "name": "Credentials",
+                "type": "Microsoft.Compute.CredentialsCombo",
+                "label": {
+                    "authenticationType": "Authentication type",
+                    "password": "Password",
+                    "confirmPassword": "Confirm password",
+                    "sshPublicKey": "SSH public key"
+                },
+                "toolTip": {
+                    "authenticationType": "",
+                    "password": "",
+                    "sshPublicKey": ""
+                },
+                "constraints": {
+                    "required": true
+                },
+                "options": {
+                    "hideConfirmation": false,
+                    "hidePassword": false
+                },
+                "osPlatform": "Linux",
+                "visible": true
+            }
+        ],
+        "steps": [
+            {
+                "name": "VirtualMachineConfig",
+                "label": "Virtual Machine Settings",
+                "subLabel": {
+                    "preValidation": "Configure the virtual machine's resources and settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Virtual Machine Settings",
+                "elements": [
+                    {
+                        "name": "osversion",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "OS Version",
+                        "defaultValue": "Rocky Linux 8.9",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Oracle Linux 8.9",
+                                    "value": "[parse(concat('{\"publisher\":\"', 'Oracle', '\",\"offer\":\"', 'Oracle-Linux', '\", \"sku\":\"', 'ol89-lvm-gen2', '\"}'))]"
+                                },
+                                {
+                                    "label": "RHEL 8.9",
+                                    "value": "[parse(concat('{\"publisher\":\"', 'RedHat', '\",\"offer\":\"', 'RHEL', '\", \"sku\":\"', '89-gen2', '\"}'))]"
+                                },
+                                {
+                                    "label": "Rocky Linux 8.9",
+                                    "value": "[parse(concat('{\"publisher\":\"', 'resf', '\",\"offer\":\"', 'rockylinux-x86_64', '\", \"sku\":\"', '8-lvm', '\"}'))]"
+                                }
+                            ],
+                            "required": true
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "DiskType",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Disk Type",
+                        "defaultValue": "Premium SSD V2",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Premium SSD V2",
+                                    "value": "PremiumV2_LRS"
+                                },
+                                {
+                                    "label": "Premium SSD",
+                                    "value": "Premium_LRS"
+                                }
+                            ],
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "backupdatatype",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Backup data type (Capacity or Objects count)",
+                        "defaultValue": "Capacity (TB)",
+                        "toolTip": "",
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Capacity (TB)",
+                                    "value": "capacity"
+                                },
+                                {
+                                    "label": "Number of objects (Millions)",
+                                    "value": "objects"
+                                }
+                            ],
+                            "required": true
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "bet",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Backup data size",
+                        "toolTip": "Backup data size.",
+                        "filter": true,
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "Upto 5TB (extra small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '31', '\", \"secondaryDataDiskSize\":\"', '11', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 10TB (extra small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '55', '\", \"secondaryDataDiskSize\":\"', '20', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 25TB (extra small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '90', '\", \"secondaryDataDiskSize\":\"', '50', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 50TB (extra small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '165', '\", \"secondaryDataDiskSize\":\"', '100', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 75TB (small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D4as_v5', '\",\"dataDiskSize\":\"', '235', '\", \"secondaryDataDiskSize\":\"', '150', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 100TB (small)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D4as_v5', '\",\"dataDiskSize\":\"', '315', '\", \"secondaryDataDiskSize\":\"', '200', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 125TB (medium)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D8as_v5', '\",\"dataDiskSize\":\"', '390', '\", \"secondaryDataDiskSize\":\"', '250', '\"}'))]"
+                                },
+                                {
+                                    "label": "Upto 150TB (medium)",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D8as_v5', '\",\"dataDiskSize\":\"', '465', '\", \"secondaryDataDiskSize\":\"', '300', '\"}'))]"
+                                }
+                            ],
+                            "required": true
+                        },
+                        "visible": "[equals(steps('VirtualMachineConfig').backupdatatype, 'capacity')]"
+                    },
+                    {
+                        "name": "objects",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Select the number of objects",
+                        "toolTip": "Number of objects to backup.",
+                        "filter": true,
+                        "constraints": {
+                            "allowedValues": [
+                                {
+                                    "label": "5 million",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '31', '\", \"secondaryDataDiskSize\":\"', '11', '\"}'))]"
+                                },
+                                {
+                                    "label": "10 million",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D2as_v5', '\",\"dataDiskSize\":\"', '45', '\", \"secondaryDataDiskSize\":\"', '20', '\"}'))]"
+                                },
+                                {
+                                    "label": "50 million",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D4as_v5', '\",\"dataDiskSize\":\"', '215', '\", \"secondaryDataDiskSize\":\"', '150', '\"}'))]"
+                                },
+                                {
+                                    "label": "100 million",
+                                    "value": "[parse(concat('{\"vmsize\":\"', 'Standard_D8as_v5', '\",\"dataDiskSize\":\"', '365', '\", \"secondaryDataDiskSize\":\"', '250', '\"}'))]"
+                                }
+                            ],
+                            "required": true
+                        },
+                        "visible": "[equals(steps('VirtualMachineConfig').backupdatatype, 'objects')]"
+                    },
+                    {
+                        "name": "virtualNetworksApi",
+                        "type": "Microsoft.Solutions.ArmApiControl",
+                        "request": {
+                            "method": "GET",
+                            "path": "[concat(subscription().id, '/providers/Microsoft.Network/virtualNetworks?api-version=2021-08-01')]"
+                        }
+                    },
+                    {
+                        "name": "virtualNetwork",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Virtual Network",
+                        "filter": true,
+                        "toolTip": "Existing Virtual networks are shown based on selected VM Region",
+                        "constraints": {
+                            "allowedValues": "[map(filter(steps('VirtualMachineConfig').virtualNetworksApi.value, (item) => equals(item.location, basics('region').region)), (item) => parse(concat('{\"label\":\"',item.name,'\",\"value\":{\"name\":\"',item.name,'\",\"id\":\"',item.id,'\",\"addressprefixes\":\"',item.properties.addressSpace.addressPrefixes, '\"}}')))]",
+                            "required": true
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "subnetsApi",
+                        "type": "Microsoft.Solutions.ArmApiControl",
+                        "request": {
+                            "method": "GET",
+                            "path": "[concat(subscription().id, '/resourceGroups/', substring(steps('VirtualMachineConfig').virtualNetwork.id,add(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'resourceGroups/'), 15),sub(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'/providers/'), add(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'resourceGroups/'), 15))),'/providers/Microsoft.Network/virtualNetworks/',steps('VirtualMachineConfig').virtualNetwork.name,'/subnets?api-version=2021-08-01')]"
+                        }
+                    },
+                    {
+                        "name": "subnets",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Subnet",
+                        "filter": true,
+                        "toolTip": "Select existing subnet",
+                        "constraints": {
+                            "allowedValues": "[map(steps('VirtualMachineConfig').subnetsApi.value, (item) => parse(concat('{\"label\":\"', concat(item.name, ' (', item.properties.addressPrefix, ')'), '\",\"value\":{\"name\":\"',item.name,'\",\"addresspre\":\"',item.properties.addressPrefix, '\"}}')))]",
+                            "required": true
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "identity",
+                        "type": "Microsoft.ManagedIdentity.IdentitySelector",
+                        "label": "Managed Identity Configuration",
+                        "toolTip": {
+                            "userAssignedIdentity": "Add user assigned identities to grant the resource access to other existing resources. Note: To read and assign user managed identity, user must have Managed Identity Operator role assignment and Ensure at minimum the reader role is assigned to the existing user managed identity at subscription level."
+                        },
+                        "defaultValue": {
+                            "systemAssignedIdentity": "Off"
+                        },
+                        "options": {
+                            "hideSystemAssignedIdentity": true,
+                            "hideUserAssignedIdentity": false
+                        },
+                        "visible": true
+                    }
+                ]
+            },
+            {
+                "bladeTitle": "Commvault Cloud Configuration",
+                "name": "metallicconfig",
+                "label": "Commvault Cloud Configuration",
+                "subLabel": {
+                    "preValidation": "Configure the metallic settings",
+                    "postValidation": "Done"
+                },
+                "elements": [
+                    {
+                        "name": "companyauthcode",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Commvault Cloud AuthCode",
+                        "toolTip": "Copy the AuthCode from your Commvault Cloud account",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9]{9}([a-zA-Z0-9]{3})?$",
+                            "validationMessage": "Auth code must be length of 9 or 12 with only alphanumeric"
+                        }
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "location": "[basics('region').region]",
+            "availabilityZone": "[basics('availabilityZone')]",
+            "vmName": "[basics('vmName')]",
+            "adminUsername": "[basics('adminUsername')]",
+            "sshPublicKey": "[basics('Credentials').sshPublicKey]",
+            "authenticationType": "[basics('Credentials').authenticationType]",
+            "sshPublicKeyData": "[if(equals(basics('Credentials').authenticationType, 'sshPublicKey'), basics('Credentials').sshPublicKey, '')]",
+            "adminPasswordData": "[if(equals(basics('Credentials').authenticationType, 'password'), basics('Credentials').password, 'ThisIsASecurePassword')]",
+            "sshKeyName": "[if(equals(basics('Credentials').authenticationType, 'sshPublicKey'), basics('Credentials').sshKeyName, '')]",
+            "generateNewSshKey": "[if(equals(basics('Credentials').authenticationType, 'sshPublicKey'), basics('Credentials').generateNewSshKey, '')]",
+            "vmSize": "[if(equals(steps('VirtualMachineConfig').backupdatatype,'capacity'), steps('VirtualMachineConfig').bet.vmsize, steps('VirtualMachineConfig').objects.vmsize)]",
+            "dataDiskSize": "[if(equals(steps('VirtualMachineConfig').backupdatatype,'capacity') , steps('VirtualMachineConfig').bet.dataDiskSize, steps('VirtualMachineConfig').objects.dataDiskSize)]",
+            "secondaryDataDiskSize": "[if(equals(steps('VirtualMachineConfig').backupdatatype,'capacity'), steps('VirtualMachineConfig').bet.secondaryDataDiskSize, steps('VirtualMachineConfig').objects.secondaryDataDiskSize)]",
+            "Publisher": "[steps('VirtualMachineConfig').osversion.publisher]",
+            "OfferName": "[steps('VirtualMachineConfig').osversion.offer]",
+            "OSVersion": "[steps('VirtualMachineConfig').osversion.sku]",
+            "DiskType": "[steps('VirtualMachineConfig').DiskType]",
+            "virtualNetworkNewOrExisting": "existing",
+            "virtualNetworkName": "[steps('VirtualMachineConfig').virtualNetwork.name]",
+            "addressPrefixes": "[steps('VirtualMachineConfig').virtualNetwork.addressprefixes]",
+            "subnetName": "[steps('VirtualMachineConfig').subnets.name]",
+            "subnetPrefix": "[steps('VirtualMachineConfig').subnets.addresspre]",
+            "virtualNetworkResourceGroupName": "[substring(steps('VirtualMachineConfig').virtualNetwork.id,add(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'resourceGroups/'), 15),sub(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'/providers/'), add(indexOf(steps('VirtualMachineConfig').virtualNetwork.id,'resourceGroups/'), 15)))]",
+            "companyAuthCode": "[steps('metallicconfig').companyauthcode]",
+            "identity": "[steps('VirtualMachineConfig').identity]"
+        }
+    }
+}
