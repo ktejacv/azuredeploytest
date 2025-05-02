@@ -454,7 +454,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "{{az:linuxinstallscript:uri}}"
+                        "https://raw.githubusercontent.com/ktejacv/azuredeploytest/refs/heads/main/AzureLinuxDeploy.sh"
                     ],
                     "commandToExecute": "[concat('chmod 0777 AzureLinuxDeploy.sh && sudo yum -y install dos2unix && sudo dos2unix AzureLinuxDeploy.sh && sudo ./AzureLinuxDeploy.sh ',parameters('backupgatewayPackage'), ' ',parameters('companyAuthCode'),' ', parameters('dataDiskSize'), ' ', parameters('secondaryDataDiskSize'),' >> linuxBackupGateway.log 2>&1')]"
                 }
