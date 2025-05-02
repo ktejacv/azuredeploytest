@@ -180,7 +180,7 @@
         },
         "availabilityZone": {
             "type": "string",
-            "defaultValue": "1",
+            "defaultValue": "",
             "metadata": {
                 "description": "Availability Zone for the VM"
             }
@@ -251,9 +251,7 @@
             "type": "Microsoft.Compute/disks",
             "apiVersion": "2022-07-02",
             "location": "[parameters('location')]",
-            "zones": [
-                "[int(parameters('availabilityZone'))]"
-            ],
+            "zones": "[if(equals(parameters('availabilityZone'), ''), json('null'), array(parameters('availabilityZone')))]",
             "properties": {
                 "diskSizeGB": "[int(parameters('dataDiskSize'))]",
                 "creationData": {
@@ -269,9 +267,7 @@
             "type": "Microsoft.Compute/disks",
             "apiVersion": "2022-07-02",
             "location": "[parameters('location')]",
-            "zones": [
-                "[int(parameters('availabilityZone'))]"
-            ],
+            "zones": "[if(equals(parameters('availabilityZone'), ''), json('null'), array(parameters('availabilityZone')))]",
             "properties": {
                 "diskSizeGB": "[int(parameters('secondaryDataDiskSize'))]",
                 "creationData": {
@@ -289,9 +285,7 @@
             "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "plan": "[variables('plan')]",
-            "zones": [
-                "[int(parameters('availabilityZone'))]"
-            ],
+            "zones": "[if(equals(parameters('availabilityZone'), ''), json('null'), array(parameters('availabilityZone')))]",
             "identity": "[if(not(equals(parameters('identity').type, 'None')), parameters('identity') , json('null'))]",
             "properties": {
                 "hardwareProfile": {
@@ -355,9 +349,7 @@
             "name": "[parameters('vmName')]",
             "location": "[parameters('location')]",
             "plan": "[variables('plan')]",
-            "zones": [
-                "[int(parameters('availabilityZone'))]"
-            ],
+            "zones": "[if(equals(parameters('availabilityZone'), ''), json('null'), array(parameters('availabilityZone')))]",
             "identity": "[if(not(equals(parameters('identity').type, 'None')), parameters('identity') , json('null'))]",
             "properties": {
                 "hardwareProfile": {
