@@ -144,6 +144,7 @@
                         "name": "DiskType",
                         "type": "Microsoft.Common.DropDown",
                         "label": "Disk Type",
+                        "toolTip": "When the selected region does not support Availability Zones, the default disk type is set to Premium SSD, as Premium SSD v2 may introduce higher latency in these regions. For More:https://learn.microsoft.com/en-us/azure/virtual-machines/disks-deploy-premium-v2?tabs=azure-cli#limitations ",
                         "defaultValue": "[if(greater(length(split(basics('region').zones, ',')), 1), 'Premium SSD V2', 'Premium SSD')]",
                         "constraints": {
                             "allowedValues": [
